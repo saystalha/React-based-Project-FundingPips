@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon-fundingpips.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>FundingPips</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            charcoal: '#020514',
+            card: '#0E2A55',
+            electric: '#2563EB',
+            mint: '#2563EB',
+            muted: 'rgba(255,255,255,0.85)',
+            white: '#ffffff',
+          },
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style type="text/tailwindcss">
+    @layer utilities {
+        /* Global Body */
+        body {
+          @apply bg-[radial-gradient(circle_at_10%_10%,rgba(37,99,235,0.06),transparent_10%)] bg-charcoal text-white font-sans;
+        }
+
+        /* Navbar */
+        .navbar {
+          @apply bg-gradient-to-r from-card to-[rgba(0,0,0,0.06)] border-b-2 border-[#2563eb1f] shadow-[0_4px_16px_rgba(2,5,20,0.6)];
+        }
+        .navbar a {
+          @apply text-white transition-colors duration-[180ms];
+        }
+        .navbar a:hover {
+          @apply text-electric;
+        }
+
+        /* --- FIX FOR SIDEBAR SEPARATION --- */
+        /* This targets the <aside> tag inside Sidebar.jsx */
+        aside {
+          @apply bg-gradient-to-b from-card to-[#07102a] text-white border-r-2 border-[#2563eb1f] p-6;
+        }
+        aside li {
+           @apply py-3 border-b border-[#262626] cursor-pointer transition-colors duration-300;
+        }
+        aside li:hover {
+           @apply text-mint;
+        }
+
+        /* Feature Cards */
+        .features-grid {
+          @apply grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-8 my-8;
+        }
+        .feature-card {
+          @apply bg-[#212121b3] border-l-4 border-[#2563eb1f] p-6 rounded-lg transition-transform duration-300 shadow-none;
+        }
+        .feature-card:hover {
+          @apply -translate-y-1 shadow-[0_12px_28px_rgba(37,99,235,0.12)];
+        }
+
+        /* Form Inputs */
+        .form-group label {
+          @apply block mb-2 font-semibold text-mint;
+        }
+        .form-group input, .form-group textarea {
+          @apply w-full p-3 bg-card border border-[#2563eb24] text-white rounded-md font-inherit transition-all duration-[180ms];
+        }
+        .form-group input:focus, .form-group textarea:focus {
+          @apply outline-none border-electric shadow-[0_0_12px_rgba(37,99,235,0.12)];
+        }
+
+        /* FAQ Items */
+        .faq-item {
+          @apply bg-[#21212180] border-l-4 border-[#2563eb1f] p-6 mb-4 rounded transition-colors duration-300;
+        }
+        .faq-item:hover {
+          @apply bg-[#212121cc];
+        }
+        .faq-item h4 {
+          @apply text-electric mb-2 font-semibold;
+        }
+        .faq-item p {
+          @apply text-muted leading-relaxed;
+        }
+      }
+    </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

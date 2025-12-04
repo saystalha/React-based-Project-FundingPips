@@ -1,0 +1,132 @@
+#app-root {
+  width: 100%;
+  background: linear-gradient(135deg, var(--charcoal) 0%, var(--card) 100%);
+}
+
+.page {
+  animation: pageLoad 0.4s ease-out;
+}
+
+@keyframes pageLoad {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Grid layouts */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: rgba(33, 33, 33, 0.7);
+  border-left: 4px solid rgba(37,99,235,0.12);
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(37,99,235,0.12);
+}
+
+/* FAQ section */
+.faq-item {
+  background: rgba(33, 33, 33, 0.5);
+  border-left: 4px solid rgba(37,99,235,0.12);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+
+.faq-item:hover {
+  background: rgba(33, 33, 33, 0.8);
+}
+
+.faq-item h4 {
+  color: var(--electric);
+  margin-bottom: 0.5rem;
+}
+
+.faq-item p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Form styling */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--mint);
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--mint);
+  color: var(--white);
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--electric);
+  box-shadow: 0 0 12px rgba(37,99,235,0.12);
+}
+
+/* Contact info box */
+.contact-info {
+  background: rgba(33, 33, 33, 0.7);
+  border-left: 4px solid var(--mint);
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.contact-info h3 {
+  color: var(--electric);
+  margin-bottom: 1.5rem;
+}
+
+.contact-info-item {
+  margin-bottom: 1.5rem;
+}
+
+.contact-info-item p:first-child {
+  font-weight: bold;
+  color: var(--mint);
+  margin-bottom: 0.25rem;
+}
+
+.contact-info-item p:last-child {
+  color: var(--muted);
+}
+
+/* Success message */
+.success-message {
+  background: rgba(37,99,235,0.06);
+  border: 1px solid rgba(37,99,235,0.12);
+  border-left: 4px solid var(--electric);
+  padding: 1rem;
+  border-radius: 4px;
+  color: var(--mint);
+  text-align: center;
+  margin-top: 2rem;
+  animation: slideUp 0.4s ease-out;
+}
