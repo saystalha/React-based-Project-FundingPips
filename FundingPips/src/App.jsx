@@ -20,21 +20,28 @@ import Trades from './components/pages/trades'
 import Watchlist from './components/pages/watchlist'
 
 const App = () => {
+  // let a = 7;
+  // console.log(a);
+  // const handleClick = () => {
+  //   console.log("Button clicked");
+  //   a++;
+  //   console.log(a);
+  // };
   return (
-    // Replaced #app-root CSS with Tailwind classes:
-    // flex-col, min-h-screen, and the gradient background
-    <div 
-      id="app-root" 
+    // <button onClick={handleClick}> Increment</button>,
+
+    <div
+      id="app-root"
       className="flex flex-col min-h-screen w-full bg-gradient-to-br from-charcoal to-card text-white"
     >
-      
+
       <Navbar />
-      
+
       {/* Middle Container */}
       <div className="flex flex-1 gap-4 overflow-y-auto">
-        
+
         <Sidebar />
-        
+
         {/* Main Content Area */}
         <div className="flex-1 p-8 w-full">
           <Routes>
@@ -52,10 +59,10 @@ const App = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
-          </Routes>     
+          </Routes>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   )
