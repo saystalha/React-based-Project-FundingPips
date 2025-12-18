@@ -1,7 +1,23 @@
-import React from 'react'
+import React, { useState, useEffect } from "react";
+import { getDocs, collection } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 const Watchlist = () => {
+  const [FirmData, setFirmData] = useState([]);
+  const fetchFirmData = async () => {
+    const querySnapshot = await getDocs(collection(db, "Firm"));
+    const FirmList = querySnapshot.docs.map((doc) => doc.data());
+    setFirmData(FirmList);
+  };
+  useEffect(() => {
+    fetchFirmData();
+  }, []);
+
+  console.log(FirmData)
+
+
   // Enhanced mock data to make it look "comprehensive"
+
   const watchlistData = [
     { symbol: 'AAPL', name: 'Apple Inc.', price: '189.84', change: '+1.25%', marketCap: '2.95T', isPositive: true },
     { symbol: 'NVDA', name: 'NVIDIA Corp', price: '485.09', change: '-0.45%', marketCap: '1.20T', isPositive: false },

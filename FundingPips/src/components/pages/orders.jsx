@@ -1,9 +1,76 @@
 import React, { useState } from 'react'
 
+// --- Project-Relevant Counter Component ---
+const PositionAdjuster = ({ symbol = 'AAPL', min = 1, max = 100 }) => {
+  // The state for the counter (current position size/quantity)
+  const [positionSize, setPositionSize] = useState(min);
+
+  // Implement the Increment action
+  const handleIncrement = () => {
+    setPositionSize(prevSize => Math.min(prevSize + 5, max)); // Increment by 5
+  };
+
+  // Implement the Decrement action
+  const handleDecrement = () => {
+    setPositionSize(prevSize => Math.max(prevSize - 5, min)); // Decrement by 5
+  };
+
+  // Implement the Reset action
+  const handleReset = () => {
+    setPositionSize(min);
+  };
+
+  return (
+    <div className="p-4 bg-gray-800/50 rounded-lg border border-white/10 shadow-xl space-y-3">
+      <h3 className="text-lg font-semibold text-white">
+        Adjust {symbol} Position
+      </h3>
+      <div className="flex items-center justify-between space-x-4">
+        {/* Decrement Button */}
+        <button
+          onClick={handleDecrement}
+          disabled={positionSize <= min}
+          className="p-3 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 disabled:opacity-50 transition-colors font-mono text-xl"
+        >
+          -
+        </button>
+
+        {/* Counter Value */}
+        <div className="flex flex-col items-center flex-grow">
+          <span className="text-4xl font-extrabold text-electric font-mono">
+            {positionSize}
+          </span>
+          <span className="text-xs text-muted uppercase tracking-wider">
+            Shares/Quantity
+          </span>
+        </div>
+
+        {/* Increment Button */}
+        <button
+          onClick={handleIncrement}
+          disabled={positionSize >= max}
+          className="p-3 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 disabled:opacity-50 transition-colors font-mono text-xl"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Reset Button */}
+      <button
+        onClick={handleReset}
+        className="w-full py-2 text-sm text-muted hover:text-white transition-colors border border-transparent hover:border-white/20 rounded"
+      >
+        Reset Quantity ({min})
+      </button>
+    </div>
+  );
+};
+// ------------------------------------------
+
 const Orders = () => {
   const [activeTab, setActiveTab] = useState('open') // 'open' or 'history'
 
-  // Enhanced mock data
+  // Enhanced mock data (Omitted for brevity in this response but kept in the code)
   const orders = [
     { id: 'ORD-7782', time: '14:30:00', symbol: 'AAPL', side: 'Buy', type: 'Limit', qty: 50, filled: 10, price: 180.50, status: 'Partial' },
     { id: 'ORD-7783', time: '14:28:15', symbol: 'TSLA', side: 'Sell', type: 'Stop Loss', qty: 10, filled: 0, price: 230.00, status: 'Open' },
@@ -12,7 +79,7 @@ const Orders = () => {
     { id: 'ORD-7779', time: 'Yesterday', symbol: 'EUR/USD', side: 'Sell', type: 'Limit', qty: 5000, filled: 5000, price: 1.0950, status: 'Filled' },
   ]
 
-  // Filter logic based on tabs
+  // Filter logic based on tabs (Omitted for brevity in this response but kept in the code)
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'open') return order.status === 'Open' || order.status === 'Partial'
     return order.status === 'Filled' || order.status === 'Cancelled'
@@ -21,15 +88,23 @@ const Orders = () => {
   return (
     <div className="w-full animate-fade-in space-y-6">
       
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-end">
-        <div>
+      {/* Header Section and New Counter Component Integration */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Title and Description */}
+        <div className="lg:col-span-2">
           <h2 className="text-3xl font-bold text-electric">Order Management</h2>
           <p className="text-muted mt-1">Manage your active limit orders and view history.</p>
         </div>
         
-        {/* Action Button */}
-        <button className="mt-4 md:mt-0 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 transition-colors text-sm font-medium">
+        {/* Right: The Position Adjuster Component */}
+        <div className="lg:col-span-1">
+            <PositionAdjuster symbol="NVDA" min={10} max={250} />
+        </div>
+      </div>
+      
+      {/* Cancel All Button (Moved for cleaner layout) */}
+      <div className="flex justify-end">
+        <button className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 transition-colors text-sm font-medium">
           Cancel All Open Orders
         </button>
       </div>
@@ -56,7 +131,7 @@ const Orders = () => {
         </button>
       </div>
 
-      {/* Table Container */}
+      {/* Table Container (Unchanged) */}
       <div className="bg-card rounded-lg border border-white/5 overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -153,4 +228,4 @@ const Orders = () => {
   )
 }
 
-export default Orders
+export default Orders 

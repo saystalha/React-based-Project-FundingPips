@@ -7,6 +7,7 @@ const Sidebar = () => {
     { name: 'Watchlist', icon: '⭐', path: '/watchlist' },
     { name: 'Orders & Trades', icon: '🧾', path: '/orders' },
     { name: 'Market News', icon: '📰', path: '/markets' }, // Linked to Markets for now
+    { name: 'Firm Tracker', icon: '📈', path: '/FirmTracker' },
   ]
 
   return (

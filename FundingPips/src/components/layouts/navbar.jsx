@@ -12,6 +12,7 @@ const Navbar = () => {
     { name: 'Trades', path: '/trades' },
     { name: 'Analytics', path: '/analytics' },
     { name: 'Watchlist', path: '/watchlist' },
+    { name: 'Firm', path: '/Firm' },
   ]
 
   return (
