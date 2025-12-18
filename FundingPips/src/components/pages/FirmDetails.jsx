@@ -48,7 +48,7 @@ const handleDelete = async () => {
             
             // 1. Execute the delete operation
             await deleteDoc(docRef);
-            
+            setFirmEntry(null);
             console.log("Document successfully deleted");
 
             // 2. CRITICAL: Clear local state immediately to avoid "Unexpected state" errors
