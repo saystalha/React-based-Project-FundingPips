@@ -29,7 +29,7 @@ const App = () => {
 
       <div className="flex flex-1 gap-4 overflow-y-auto">
         <Sidebar />
-
+          {/* routes */}
         <div className="flex-1 p-8 w-full">
           <Routes>
             <Route path="/" element={<Home />} />
