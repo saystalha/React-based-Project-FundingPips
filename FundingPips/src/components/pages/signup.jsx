@@ -59,62 +59,73 @@ const SignUp = () => {
 
   // --- CORRECTED SECURE FIREBASE AUTHENTICATION HANDLER ---
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
+  e.preventDefault();
+  
+  // 1. Client-side validation
+  const newErrors = validateForm();
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
 
-    if (Object.keys(newErrors).length === 0) {
-      setLoading(true);
-      setErrors({});
+  setLoading(true);
+  setErrors({}); // Reset errors before attempt
 
-      const auth = getAuth();
+  const auth = getAuth();
 
-      try {
-        // 1. Create user in Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          formData.email,
-          formData.password
-        );
-        const user = userCredential.user;
+  try {
+    // 2. Create user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      formData.email.trim(),
+      formData.password
+    );
+    
+    const user = userCredential.user;
 
-        // 2. FIX: Store user data in Firestore using setDoc
-        // This satisfies the security rule by setting the document ID to user.uid.
-        await setDoc(doc(db, "Users", user.uid), {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          createdAt: new Date(),
-        });
+    // 3. Store user profile in Firestore
+    // We nest this in another try/catch to handle cases where Auth works but DB fails
+    try {
+      await setDoc(doc(db, "Users", user.uid), {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        uid: user.uid,
+        createdAt: new Date(), // Use serverTimestamp() for production consistency
+        role: "trader",        // Useful for future permissions
+      });
 
-        console.log(
-          "User successfully created and profile stored in Firestore. UID:",
-          user.uid
-        );
+      console.log("Signup successful!");
+      navigate("/dashboard");
 
-        // 3. Redirect to the dashboard
-        navigate("/dashboard");
-      } catch (error) {
-        console.error("Firebase Sign-Up Error: ", error);
-
-        let errorMessage = "Failed to create account.";
-
-        if (error.code === "auth/email-already-in-use") {
-          errorMessage = "This email address is already in use.";
-        } else if (error.code === "auth/weak-password") {
-          errorMessage =
-            "The password is too weak (must be at least 6 characters).";
-        } else if (error.code === "permission-denied" || error.code === "unauthenticated") {
-             errorMessage = "Account created, but failed to save profile. Please check Firestore rules.";
-        }
-
-        setErrors({ submit: errorMessage });
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setErrors(newErrors);
+    } catch (firestoreError) {
+      console.error("Firestore Error:", firestoreError);
+      // Logic for "Partial Success": Account exists but profile data didn't save
+      setErrors({ 
+        submit: "Account created, but profile setup failed. Please contact support or try logging in." 
+      });
     }
-  };
+
+  } catch (authError) {
+    console.error("Auth Error:", authError.code);
+    
+    // Map Firebase error codes to user-friendly messages
+    const errorMessages = {
+      "auth/email-already-in-use": "This email is already registered. Try signing in.",
+      "auth/invalid-email": "The email address is not valid.",
+      "auth/operation-not-allowed": "Email/password accounts are not enabled.",
+      "auth/weak-password": "The password is too weak.",
+      "auth/network-request-failed": "Network error. Please check your connection."
+    };
+
+    setErrors({ 
+      submit: errorMessages[authError.code] || "An unexpected error occurred. Please try again." 
+    });
+    
+  } finally {
+    setLoading(false);
+  }
+};
   // ---------------------------------------------
 
   return (

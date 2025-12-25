@@ -1,105 +1,114 @@
-import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signOut, 
+  deleteUser 
+} from "firebase/auth";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate();
+  const auth = getAuth();
 
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Markets', path: '/markets' },
-    { name: 'Portfolio', path: '/portfolio' },
-    { name: 'Orders', path: '/orders' },
-    { name: 'Trades', path: '/trades' },
-    { name: 'Analytics', path: '/analytics' },
-    { name: 'Watchlist', path: '/watchlist' },
-    { name: 'Firm', path: '/Firm' },
-  ]
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate('/signin');
+  };
+
+  // --- DELETE ACCOUNT LOGIC ---
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you absolutely sure? This will permanently delete your account and all associated data."
+    );
+
+    if (confirmDelete && auth.currentUser) {
+      try {
+        await deleteUser(auth.currentUser);
+        alert("Account deleted successfully.");
+        navigate('/signup');
+      } catch (error) {
+        console.error("Delete error:", error.code);
+        if (error.code === 'auth/requires-recent-login') {
+          alert("For security reasons, please log out and log back in before deleting your account.");
+        } else {
+          alert("Failed to delete account. Please try again later.");
+        }
+      }
+    }
+  };
 
   return (
-    <nav className="bg-card border-b-2 border-mint shadow-[0_2px_8px_rgba(0,0,0,0.25)] px-8 sticky top-0 z-50">
+    <nav className="bg-card border-b-2 border-mint px-8 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex justify-between items-center min-h-[80px]">
-        
-        {/* Logo */}
-        <Link 
-          to="/" 
-          className="text-2xl font-bold text-electric hover:text-white transition-colors duration-200"
-        >
-          📈 FundingPips
-        </Link>
+        <Link to="/" className="text-2xl font-bold text-electric">📈 FundingPips</Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.name}
-              to={link.path}
-              className="text-white hover:text-electric transition-colors duration-200 text-sm font-medium"
-            >
-              {link.name}
-            </Link>
-          ))}
+          {/* ... nav links ... */}
 
-          {/* Auth Buttons (Desktop) */}
-          <div className="flex gap-3 pl-8 border-l border-[#262626]">
-            <Link
-              to="/signin"
-              className="px-4 py-2 text-electric border border-electric/20 rounded-md hover:bg-electric/10 hover:text-white transition-all duration-200"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/signup"
-              className="px-4 py-2 bg-electric text-white font-bold rounded-md hover:bg-blue-600 transition-all duration-200"
-            >
-              Create Account
-            </Link>
-          </div>
+          {!user ? (
+            <div className="flex gap-3">
+              <Link to="/signin" className="px-4 py-2 text-electric border border-electric/20 rounded-md">Sign In</Link>
+              <Link to="/signup" className="px-4 py-2 bg-electric text-white font-bold rounded-md">Create Account</Link>
+            </div>
+          ) : (
+            <div className="relative">
+              <button 
+                onMouseEnter={() => setShowDropdown(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-white/10 rounded-md hover:border-electric transition-all"
+              >
+                <div className="w-6 h-6 rounded-full bg-electric flex items-center justify-center text-[10px] text-white">
+                  {user.email?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-white max-w-[150px] truncate">{user.email}</span>
+              </button>
+
+              {showDropdown && (
+                <div 
+                  onMouseLeave={() => setShowDropdown(false)}
+                  className="absolute right-0 mt-2 w-52 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-2 animate-fade-in z-[60]"
+                >
+                  <div className="px-4 py-2 border-b border-white/5 mb-2">
+                    <p className="text-xs text-muted">Signed in as</p>
+                    <p className="text-sm font-bold text-electric truncate">{user.email}</p>
+                  </div>
+                  
+                  <Link to="/dashboard" className="block px-4 py-2 text-sm text-white hover:bg-electric/10">Dashboard</Link>
+                  <Link to="/portfolio" className="block px-4 py-2 text-sm text-white hover:bg-electric/10">Settings</Link>
+                  
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 mt-1"
+                  >
+                    Logout
+                  </button>
+
+                  {/* DELETE BUTTON */}
+                  <div className="mt-2 pt-2 border-t border-white/5">
+                    <button 
+                      onClick={handleDeleteAccount}
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 font-semibold"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden text-mint text-2xl focus:outline-none"
-        >
-          {isOpen ? '✕' : '☰'}
-        </button>
       </div>
-
-      {/* Mobile Navigation Dropdown */}
-      {isOpen && (
-        <div className="md:hidden border-t border-[#262626] py-4 space-y-2 animate-fade-in">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.name}
-              to={link.path} 
-              className="block text-white hover:text-mint transition-colors duration-300 py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              {link.name}
-            </Link>
-          ))}
-          
-          {/* Mobile Auth Buttons */}
-          <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-[#262626]">
-            <Link
-              to="/signin"
-              className="text-center px-4 py-2 text-electric border border-electric/20 rounded-md hover:bg-electric/10 hover:text-white"
-              onClick={() => setIsOpen(false)}
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/signup"
-              className="text-center px-4 py-2 bg-electric text-white font-bold rounded-md hover:bg-blue-600"
-              onClick={() => setIsOpen(false)}
-            >
-              Create Account
-            </Link>
-          </div>
-        </div>
-      )}
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
