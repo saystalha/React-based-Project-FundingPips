@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import React, { useState } from "react";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
+import { useAuth } from "../../context/AuthContext";
+
+// This component creates records in the 'Firm' collection. We attach `ownerId` so
+// user-level permissions can be enforced elsewhere. Admins can still manage all records.
 
 const Contact = () => {
   // 1. Use useState to store the form inputs in a single object
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    traderId: '',       // Relevant to a trading/funding app
-    inquiryType: 'General Support',
-    message: ''
+    fullName: "",
+    email: "",
+    traderId: "", // Relevant to a trading/funding app
+    inquiryType: "General Support",
+    message: "",
   });
+
+  const { user } = useAuth();
 
   // Handle input changes
   const handleChange = (e) => {
@@ -25,22 +31,26 @@ const Contact = () => {
     e.preventDefault();
 
     try {
+      // Add ownership information so users can only manage their own submissions
+      const payload = {
+        ...formData,
+        createdAt: new Date(),
+        ownerId: user?.uid || null,
+      };
       // Attempt to save the data to the 'Firm' collection
-      const docRef = await addDoc(collection(db, "Firm"), formData);
+      const docRef = await addDoc(collection(db, "Firm"), payload);
 
       console.log("Form Data Submitted:", formData);
       console.log("Document successfully written with ID:", docRef.id);
       alert("Message sent! Your contact request has been submitted.");
-      
 
       setFormData({
-        fullName: '',
-        email: '',
-        traderId: '',
-        inquiryType: 'General Support',
-        message: ''
+        fullName: "",
+        email: "",
+        traderId: "",
+        inquiryType: "General Support",
+        message: "",
       });
-
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("There was an error submitting your request. Please try again.");
@@ -50,10 +60,11 @@ const Contact = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white p-4">
       <div className="w-full max-w-lg bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-700">
-        <h2 className="text-3xl font-bold mb-6 text-center text-blue-500">Contact Support</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center text-blue-500">
+          Contact Support
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
           {/* Field 1: Full Name */}
           <div>
             <label className="block text-sm font-medium mb-1">Full Name</label>
@@ -70,7 +81,9 @@ const Contact = () => {
 
           {/* Field 2: Email */}
           <div>
-            <label className="block text-sm font-medium mb-1">Email Address</label>
+            <label className="block text-sm font-medium mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               name="email"
@@ -84,7 +97,9 @@ const Contact = () => {
 
           {/* Field 3: Trader ID (Project Relevant) */}
           <div>
-            <label className="block text-sm font-medium mb-1">Trader / Account ID</label>
+            <label className="block text-sm font-medium mb-1">
+              Trader / Account ID
+            </label>
             <input
               type="text"
               name="traderId"
@@ -132,7 +147,6 @@ const Contact = () => {
           >
             Submit Request
           </button>
-
         </form>
       </div>
     </div>

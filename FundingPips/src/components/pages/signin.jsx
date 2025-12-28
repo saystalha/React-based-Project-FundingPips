@@ -1,19 +1,21 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 // 1. Added GoogleAuthProvider and signInWithPopup
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail, 
-  GoogleAuthProvider, 
-  signInWithPopup 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 const SignIn = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const auth = getAuth();
@@ -22,13 +24,43 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      await signInWithPopup(auth, provider);
-      navigate('/dashboard');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Ensure a Users/{uid} document exists (no duplicates)
+      try {
+        const userRef = doc(db, "Users", user.uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          const displayName = user.displayName || "";
+          const [firstName, ...rest] = displayName.split(" ");
+          const lastName = rest.join(" ");
+          await setDoc(
+            userRef,
+            {
+              uid: user.uid,
+              email: (user.email || "").toLowerCase(),
+              firstName: firstName || "",
+              lastName: lastName || "",
+              createdAt: serverTimestamp(),
+              role: "trader",
+            },
+            { merge: true }
+          );
+        }
+      } catch (dbErr) {
+        console.error(
+          "Failed to upsert user profile after Google sign-in",
+          dbErr
+        );
+      }
+
+      navigate("/dashboard");
     } catch (err) {
       console.error(err);
-      setError('Google sign-in failed. Please try again.');
+      setError("Google sign-in failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -36,26 +68,26 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
 
     if (!email || !password) {
-      setError('Please provide both email and password');
+      setError("Please provide both email and password");
       return;
     }
 
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
       const errorMap = {
-        'auth/user-not-found': 'No account found with this email.',
-        'auth/wrong-password': 'Incorrect password.',
-        'auth/invalid-credential': 'Invalid email or password.',
-        'auth/too-many-requests': 'Account temporarily locked.',
+        "auth/user-not-found": "No account found with this email.",
+        "auth/wrong-password": "Incorrect password.",
+        "auth/invalid-credential": "Invalid email or password.",
+        "auth/too-many-requests": "Account temporarily locked.",
       };
-      setError(errorMap[err.code] || 'Failed to sign in.');
+      setError(errorMap[err.code] || "Failed to sign in.");
     } finally {
       setLoading(false);
     }
@@ -63,16 +95,16 @@ const SignIn = () => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('Please enter your email address first.');
+      setError("Please enter your email address first.");
       return;
     }
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, email.trim());
-      setMessage('Password reset link sent! Check your inbox.');
-      setError('');
+      setMessage("Password reset link sent! Check your inbox.");
+      setError("");
     } catch (err) {
-      setError('Could not send reset email.');
+      setError("Could not send reset email.");
     } finally {
       setLoading(false);
     }
@@ -82,12 +114,13 @@ const SignIn = () => {
     <main className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800 via-charcoal to-black text-white">
       <div className="w-full max-w-5xl animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden border border-white/5 bg-card">
-          
           {/* Left Side: Promo Panel */}
           <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-card to-gray-900 relative">
-             <div className="relative z-10">
+            <div className="relative z-10">
               <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
-              <p className="text-muted text-lg leading-relaxed">Access your trading dashboard and institutional-grade tools.</p>
+              <p className="text-muted text-lg leading-relaxed">
+                Access your trading dashboard and institutional-grade tools.
+              </p>
             </div>
           </div>
 
@@ -97,8 +130,16 @@ const SignIn = () => {
               <h1 className="text-2xl font-bold mb-2">Sign In</h1>
             </div>
 
-            {error && <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">{error}</div>}
-            {message && <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center">{message}</div>}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center">
+                {message}
+              </div>
+            )}
 
             {/* Google Sign-In Button */}
             <button
@@ -107,18 +148,30 @@ const SignIn = () => {
               disabled={loading}
               className="w-full flex items-center justify-center gap-3 py-3 px-4 mb-6 border border-white/10 rounded-lg hover:bg-white/5 transition-all text-sm font-semibold"
             >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt="Google"
+                className="w-5 h-5"
+              />
               Sign in with Google
             </button>
 
             <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5"></span></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted">Or continue with email</span></div>
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-white/5"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted">
+                  Or continue with email
+                </span>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-muted">Email Address</label>
+                <label className="text-sm font-medium text-muted">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -130,8 +183,16 @@ const SignIn = () => {
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium text-muted">Password</label>
-                  <button type="button" onClick={handleForgotPassword} className="text-xs font-semibold text-electric hover:text-white">Forgot password?</button>
+                  <label className="text-sm font-medium text-muted">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs font-semibold text-electric hover:text-white"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
                 <input
                   type="password"
@@ -147,12 +208,18 @@ const SignIn = () => {
                 disabled={loading}
                 className="w-full py-3 rounded-lg font-bold bg-electric hover:bg-blue-600 disabled:opacity-50 transition-all"
               >
-                {loading ? 'Processing...' : 'Sign In'}
+                {loading ? "Processing..." : "Sign In"}
               </button>
             </form>
 
             <div className="mt-8 text-center text-sm text-muted">
-              Don't have an account? <Link to="/signup" className="font-bold text-electric hover:text-white">Create account</Link>
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-bold text-electric hover:text-white"
+              >
+                Create account
+              </Link>
             </div>
           </div>
         </div>

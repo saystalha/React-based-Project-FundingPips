@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 // Import Firestore functions
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
 // Import Firebase Authentication functions
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
@@ -31,7 +31,8 @@ const SignUp = () => {
 
   const passwordStrength = useMemo(() => {
     const pwd = formData.password || "";
-    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /\d/.test(pwd)) return "Strong";
+    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /\d/.test(pwd))
+      return "Strong";
     if (pwd.length >= 8) return "Medium";
     if (pwd.length > 0) return "Weak";
     return "";
@@ -46,7 +47,8 @@ const SignUp = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.email.includes("@")) newErrors.email = "Enter a valid email";
     if (formData.password.length < 6)
@@ -59,80 +61,86 @@ const SignUp = () => {
 
   // --- CORRECTED SECURE FIREBASE AUTHENTICATION HANDLER ---
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // 1. Client-side validation
-  const newErrors = validateForm();
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
-  }
+    e.preventDefault();
 
-  setLoading(true);
-  setErrors({}); // Reset errors before attempt
-
-  const auth = getAuth();
-
-  try {
-    // 2. Create user in Firebase Authentication
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      formData.email.trim(),
-      formData.password
-    );
-    
-    const user = userCredential.user;
-
-    // 3. Store user profile in Firestore
-    // We nest this in another try/catch to handle cases where Auth works but DB fails
-    try {
-      await setDoc(doc(db, "Users", user.uid), {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        uid: user.uid,
-        createdAt: new Date(), // Use serverTimestamp() for production consistency
-        role: "trader",        // Useful for future permissions
-      });
-
-      console.log("Signup successful!");
-      navigate("/dashboard");
-
-    } catch (firestoreError) {
-      console.error("Firestore Error:", firestoreError);
-      // Logic for "Partial Success": Account exists but profile data didn't save
-      setErrors({ 
-        submit: "Account created, but profile setup failed. Please contact support or try logging in." 
-      });
+    // 1. Client-side validation
+    const newErrors = validateForm();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     }
 
-  } catch (authError) {
-    console.error("Auth Error:", authError.code);
-    
-    // Map Firebase error codes to user-friendly messages
-    const errorMessages = {
-      "auth/email-already-in-use": "This email is already registered. Try signing in.",
-      "auth/invalid-email": "The email address is not valid.",
-      "auth/operation-not-allowed": "Email/password accounts are not enabled.",
-      "auth/weak-password": "The password is too weak.",
-      "auth/network-request-failed": "Network error. Please check your connection."
-    };
+    setLoading(true);
+    setErrors({}); // Reset errors before attempt
 
-    setErrors({ 
-      submit: errorMessages[authError.code] || "An unexpected error occurred. Please try again." 
-    });
-    
-  } finally {
-    setLoading(false);
-  }
-};
+    const auth = getAuth();
+
+    try {
+      // 2. Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email.trim(),
+        formData.password
+      );
+
+      const user = userCredential.user;
+
+      // 3. Store user profile in Firestore
+      // We nest this in another try/catch to handle cases where Auth works but DB fails
+      try {
+        await setDoc(
+          doc(db, "Users", user.uid),
+          {
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            email: formData.email.trim().toLowerCase(),
+            uid: user.uid,
+            createdAt: serverTimestamp(),
+            role: "trader",
+          },
+          { merge: true }
+        );
+
+        console.log("Signup successful!");
+        navigate("/dashboard");
+      } catch (firestoreError) {
+        console.error("Firestore Error:", firestoreError);
+        // Logic for "Partial Success": Account exists but profile data didn't save
+        setErrors({
+          submit:
+            "Account created, but profile setup failed. Please contact support or try logging in.",
+        });
+      }
+    } catch (authError) {
+      console.error("Auth Error:", authError.code);
+
+      // Map Firebase error codes to user-friendly messages
+      const errorMessages = {
+        "auth/email-already-in-use":
+          "This email is already registered. Try signing in.",
+        "auth/invalid-email": "The email address is not valid.",
+        "auth/operation-not-allowed":
+          "Email/password accounts are not enabled.",
+        "auth/weak-password": "The password is too weak.",
+        "auth/network-request-failed":
+          "Network error. Please check your connection.",
+      };
+
+      setErrors({
+        submit:
+          errorMessages[authError.code] ||
+          "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   // ---------------------------------------------
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800 via-charcoal to-black">
       <div className="w-full max-w-5xl animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden border border-white/5">
-          
           {/* Left Side: Promo Panel */}
           <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-card to-gray-900 relative">
             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
@@ -213,7 +221,9 @@ const SignUp = () => {
                     }`}
                   />
                   {errors.firstName && (
-                    <div className="text-red-400 text-xs">{errors.firstName}</div>
+                    <div className="text-red-400 text-xs">
+                      {errors.firstName}
+                    </div>
                   )}
                 </div>
 
@@ -233,7 +243,9 @@ const SignUp = () => {
                     }`}
                   />
                   {errors.lastName && (
-                    <div className="text-red-400 text-xs">{errors.lastName}</div>
+                    <div className="text-red-400 text-xs">
+                      {errors.lastName}
+                    </div>
                   )}
                 </div>
               </div>
@@ -278,7 +290,9 @@ const SignUp = () => {
                 />
                 <div className="flex justify-between items-center h-4">
                   {errors.password && (
-                    <div className="text-red-400 text-xs">{errors.password}</div>
+                    <div className="text-red-400 text-xs">
+                      {errors.password}
+                    </div>
                   )}
                   {passwordStrength && !errors.password && (
                     <div
