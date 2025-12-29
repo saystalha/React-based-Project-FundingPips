@@ -42,6 +42,12 @@ const ProtectedRoute = ({ user, children }) => {
 // --- ADMIN ROUTE ---
 // Allows access only if authenticated and role === 'admin'
 const AdminRoute = ({ user, profile, children }) => {
+  console.log("[AdminRoute DEBUG]", {
+    isUserAuth: !!user,
+    profileExists: !!profile,
+    userRole: profile?.role,
+    isAdmin: profile?.role === "admin",
+  });
   if (!user) return <Navigate to="/signin" replace />;
   if (!profile || profile.role !== "admin")
     return <Navigate to="/dashboard" replace />;
@@ -65,8 +71,18 @@ const App = () => {
             const docRef = doc(db, "Users", currentUser.uid);
             const snap = await getDoc(docRef);
             if (snap.exists()) {
-              setProfile(snap.data());
+              const profileData = snap.data();
+              console.log("[DEBUG] User authenticated:", {
+                uid: currentUser.uid,
+                email: currentUser.email,
+              });
+              console.log("[DEBUG] Profile from Firestore:", profileData);
+              setProfile(profileData);
             } else {
+              console.log(
+                "[DEBUG] No profile document found for uid:",
+                currentUser.uid
+              );
               setProfile(null);
             }
           } catch (err) {
