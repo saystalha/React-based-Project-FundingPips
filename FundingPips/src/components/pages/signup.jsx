@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-// Import Firestore functions
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
-// Import Firebase Authentication functions
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  signInWithPopup 
+} from "firebase/auth";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -16,13 +19,50 @@ const SignUp = () => {
     agreeTerms: false,
   });
   
-  // New state for toggling password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const auth = getAuth();
+
+  // --- GOOGLE SIGN UP HANDLER (Matches SignIn Logic) ---
+  const handleGoogleSignUp = async () => {
+    const provider = new GoogleAuthProvider();
+    setLoading(true);
+    setErrors({});
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userRef = doc(db, "Users", user.uid);
+      const snap = await getDoc(userRef);
+      
+      if (!snap.exists()) {
+        const displayName = user.displayName || "";
+        const [firstName, ...rest] = displayName.split(" ");
+        const lastName = rest.join(" ");
+        await setDoc(
+          userRef,
+          {
+            uid: user.uid,
+            email: (user.email || "").toLowerCase(),
+            firstName: firstName || "",
+            lastName: lastName || "",
+            createdAt: serverTimestamp(),
+            role: "trader",
+          },
+          { merge: true }
+        );
+      }
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setErrors({ submit: "Google sign-up failed. Please try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,8 +75,7 @@ const SignUp = () => {
 
   const passwordStrength = useMemo(() => {
     const pwd = formData.password || "";
-    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /\d/.test(pwd))
-      return "Strong";
+    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /\d/.test(pwd)) return "Strong";
     if (pwd.length >= 8) return "Medium";
     if (pwd.length > 0) return "Weak";
     return "";
@@ -50,14 +89,11 @@ const SignUp = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.firstName.trim())
-      newErrors.firstName = "First name is required";
+    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.email.includes("@")) newErrors.email = "Enter a valid email";
-    if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
-    if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match";
+    if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
     if (!formData.agreeTerms) newErrors.agreeTerms = "You must agree to terms";
     return newErrors;
   };
@@ -72,7 +108,6 @@ const SignUp = () => {
 
     setLoading(true);
     setErrors({});
-    const auth = getAuth();
 
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -83,40 +118,31 @@ const SignUp = () => {
 
       const user = userCredential.user;
 
-      try {
-        await setDoc(
-          doc(db, "Users", user.uid),
-          {
-            firstName: formData.firstName.trim(),
-            lastName: formData.lastName.trim(),
-            email: formData.email.trim().toLowerCase(),
-            uid: user.uid,
-            createdAt: serverTimestamp(),
-            role: "trader",
-          },
-          { merge: true }
-        );
-        navigate("/dashboard");
-      } catch (firestoreError) {
-        setErrors({
-          submit: "Account created, but profile setup failed. Please contact support.",
-        });
-      }
+      await setDoc(
+        doc(db, "Users", user.uid),
+        {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim().toLowerCase(),
+          uid: user.uid,
+          createdAt: serverTimestamp(),
+          role: "trader",
+        },
+        { merge: true }
+      );
+      navigate("/dashboard");
     } catch (authError) {
       const errorMessages = {
         "auth/email-already-in-use": "This email is already registered.",
         "auth/invalid-email": "The email address is not valid.",
         "auth/weak-password": "The password is too weak.",
       };
-      setErrors({
-        submit: errorMessages[authError.code] || "An unexpected error occurred.",
-      });
+      setErrors({ submit: errorMessages[authError.code] || "An unexpected error occurred." });
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper component for the Eye Icon
   const EyeIcon = ({ visible }) => (
     visible ? (
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -133,35 +159,45 @@ const SignUp = () => {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800 via-charcoal to-black">
       <div className="w-full max-w-5xl animate-fade-in">
-        <div className="grid grid-cols-1 lg:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden border border-white/5">
-          {/* Left Side: Promo Panel */}
-          <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-card to-gray-900 relative">
-            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-            <div className="relative z-10">
-              <h2 className="text-3xl font-bold text-white mb-2">
-                Join <span className="text-electric">FundingPips</span> Today
-              </h2>
-              <p className="text-muted text-lg mb-8 leading-relaxed">
-                Create your trading account to start tracking markets with institutional-grade tools.
-              </p>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 shadow-2xl rounded-2xl overflow-hidden border border-white/5 bg-card">
+          <div className="hidden lg:flex flex-col justify-center p-12 bg-gradient-to-br from-card to-gray-900 relative text-white">
+            <h2 className="text-3xl font-bold mb-2">Join <span className="text-electric">FundingPips</span> Today</h2>
+            <p className="text-muted text-lg leading-relaxed">Create your trading account to start tracking markets with institutional-grade tools.</p>
           </div>
 
-          {/* Right Side: Form */}
           <div className="flex flex-col justify-center p-8 md:p-12 bg-card w-full">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-white mb-2">Create Account</h1>
               <p className="text-muted text-sm">Start your trading journey for free</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {errors.submit && (
-                <div className="text-red-400 text-sm text-center font-medium bg-red-900/20 p-2 rounded-lg">
-                  {errors.submit}
-                </div>
-              )}
+            {errors.submit && (
+              <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                {errors.submit}
+              </div>
+            )}
 
-              {/* Name Row */}
+            {/* Google Sign-Up Button */}
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 mb-6 border border-white/10 rounded-lg hover:bg-white/5 transition-all text-sm font-semibold text-white"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              Sign up with Google
+            </button>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-white/5"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted">Or continue with email</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm font-medium text-muted">First Name</label>
@@ -170,11 +206,10 @@ const SignUp = () => {
                     value={formData.firstName}
                     onChange={handleChange}
                     placeholder="John"
-                    className={`w-full px-4 py-3 bg-gray-900/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-electric text-white border-white/10`}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-white/10 rounded-lg focus:border-electric outline-none text-white"
                   />
                   {errors.firstName && <div className="text-red-400 text-xs">{errors.firstName}</div>}
                 </div>
-
                 <div className="flex-1 space-y-1.5">
                   <label className="text-sm font-medium text-muted">Last Name</label>
                   <input
@@ -182,13 +217,12 @@ const SignUp = () => {
                     value={formData.lastName}
                     onChange={handleChange}
                     placeholder="Doe"
-                    className={`w-full px-4 py-3 bg-gray-900/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-electric text-white border-white/10`}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-white/10 rounded-lg focus:border-electric outline-none text-white"
                   />
                   {errors.lastName && <div className="text-red-400 text-xs">{errors.lastName}</div>}
                 </div>
               </div>
 
-              {/* Email */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-muted">Email Address</label>
                 <input
@@ -196,12 +230,11 @@ const SignUp = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="you@company.com"
-                  className={`w-full px-4 py-3 bg-gray-900/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-electric text-white border-white/10`}
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-white/10 rounded-lg focus:border-electric outline-none text-white"
                 />
                 {errors.email && <div className="text-red-400 text-xs">{errors.email}</div>}
               </div>
 
-              {/* Password with Toggle */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-muted">Password</label>
                 <div className="relative">
@@ -211,27 +244,15 @@ const SignUp = () => {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Create a password"
-                    className={`w-full px-4 py-3 bg-gray-900/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-electric text-white border-white/10`}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-white/10 rounded-lg focus:border-electric outline-none text-white"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white">
                     <EyeIcon visible={showPassword} />
                   </button>
                 </div>
-                <div className="flex justify-between items-center h-4">
-                  {errors.password && <div className="text-red-400 text-xs">{errors.password}</div>}
-                  {passwordStrength && !errors.password && (
-                    <div className={`text-xs font-bold ml-auto ${getStrengthColor(passwordStrength)}`}>
-                      Strength: {passwordStrength}
-                    </div>
-                  )}
-                </div>
+                {passwordStrength && <div className={`text-xs font-bold mt-1 ${getStrengthColor(passwordStrength)}`}>Strength: {passwordStrength}</div>}
               </div>
 
-              {/* Confirm Password with Toggle */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-muted">Confirm Password</label>
                 <div className="relative">
@@ -241,45 +262,30 @@ const SignUp = () => {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="Repeat your password"
-                    className={`w-full px-4 py-3 bg-gray-900/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-electric text-white border-white/10`}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-white/10 rounded-lg focus:border-electric outline-none text-white"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white">
                     <EyeIcon visible={showConfirmPassword} />
                   </button>
                 </div>
                 {errors.confirmPassword && <div className="text-red-400 text-xs">{errors.confirmPassword}</div>}
               </div>
 
-              {/* Terms */}
               <div className="space-y-1">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="agreeTerms"
-                    checked={formData.agreeTerms}
-                    onChange={handleChange}
-                    className="h-5 w-5 appearance-none rounded border border-gray-600 bg-gray-800 checked:bg-electric"
-                  />
+                <label className="flex items-start gap-3 cursor-pointer text-white">
+                  <input type="checkbox" name="agreeTerms" checked={formData.agreeTerms} onChange={handleChange} className="h-5 w-5 rounded border-white/10 bg-gray-800 checked:bg-electric" />
                   <span className="text-sm text-muted">I agree to the Terms and Privacy Policy</span>
                 </label>
                 {errors.agreeTerms && <div className="text-red-400 text-xs ml-8">{errors.agreeTerms}</div>}
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-3 px-4 rounded-lg text-sm font-bold text-white bg-electric hover:bg-blue-600 disabled:opacity-50 transition-all"
-              >
-                {loading ? "Creating account..." : "Create Account"}
+              <button type="submit" disabled={loading} className="w-full py-3 rounded-lg font-bold bg-electric hover:bg-blue-600 disabled:opacity-50 transition-all text-white">
+                {loading ? "Processing..." : "Create Account"}
               </button>
             </form>
 
             <div className="mt-8 text-center text-sm text-muted">
-              Already have an account? <Link to="/signin" className="font-bold text-electric">Sign in</Link>
+              Already have an account? <Link to="/signin" className="font-bold text-electric hover:text-white">Sign in</Link>
             </div>
           </div>
         </div>
