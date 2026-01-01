@@ -3,22 +3,20 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useAuth } from "../../context/AuthContext";
 
-// This component creates records in the 'Firm' collection. We attach `ownerId` so
-// user-level permissions can be enforced elsewhere. Admins can still manage all records.
-
 const Contact = () => {
-  // 1. Use useState to store the form inputs in a single object
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    traderId: "", // Relevant to a trading/funding app
+    traderId: "", 
     inquiryType: "General Support",
     message: "",
   });
 
+  // 1. Add a processing state
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const { user } = useAuth();
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -29,18 +27,19 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 2. Start processing
+    setIsProcessing(true);
 
     try {
-      // Add ownership information so users can only manage their own submissions
       const payload = {
         ...formData,
         createdAt: new Date(),
         ownerId: user?.uid || null,
       };
-      // Attempt to save the data to the 'Firm' collection
+
       const docRef = await addDoc(collection(db, "Firm"), payload);
 
-      console.log("Form Data Submitted:", formData);
       console.log("Document successfully written with ID:", docRef.id);
       alert("Message sent! Your contact request has been submitted.");
 
@@ -54,6 +53,9 @@ const Contact = () => {
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("There was an error submitting your request. Please try again.");
+    } finally {
+      // 3. Stop processing regardless of success or failure
+      setIsProcessing(false);
     }
   };
 
@@ -65,7 +67,6 @@ const Contact = () => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Field 1: Full Name */}
           <div>
             <label className="block text-sm font-medium mb-1">Full Name</label>
             <input
@@ -76,14 +77,12 @@ const Contact = () => {
               placeholder="John Doe"
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
               required
+              disabled={isProcessing} // Disable input while processing
             />
           </div>
 
-          {/* Field 2: Email */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium mb-1">Email Address</label>
             <input
               type="email"
               name="email"
@@ -92,14 +91,12 @@ const Contact = () => {
               placeholder="john@example.com"
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
               required
+              disabled={isProcessing}
             />
           </div>
 
-          {/* Field 3: Trader ID (Project Relevant) */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Trader / Account ID
-            </label>
+            <label className="block text-sm font-medium mb-1">Trader / Account ID</label>
             <input
               type="text"
               name="traderId"
@@ -107,10 +104,10 @@ const Contact = () => {
               onChange={handleChange}
               placeholder="e.g. TRD-88421"
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
+              disabled={isProcessing}
             />
           </div>
 
-          {/* Field 4: Inquiry Type (Dropdown) */}
           <div>
             <label className="block text-sm font-medium mb-1">Department</label>
             <select
@@ -118,6 +115,7 @@ const Contact = () => {
               value={formData.inquiryType}
               onChange={handleChange}
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
+              disabled={isProcessing}
             >
               <option value="General Support">General Support</option>
               <option value="Billing & Payouts">Billing & Payouts</option>
@@ -126,7 +124,6 @@ const Contact = () => {
             </select>
           </div>
 
-          {/* Field 5: Message */}
           <div>
             <label className="block text-sm font-medium mb-1">Message</label>
             <textarea
@@ -137,15 +134,31 @@ const Contact = () => {
               placeholder="How can we help you today?"
               className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-blue-500"
               required
+              disabled={isProcessing}
             ></textarea>
           </div>
 
-          {/* Submit Button */}
+          {/* 4. Conditional Button Logic */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+            disabled={isProcessing}
+            className={`w-full font-bold py-2 px-4 rounded transition duration-200 flex items-center justify-center ${
+              isProcessing 
+                ? "bg-gray-600 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
           >
-            Submit Request
+            {isProcessing ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              "Submit Request"
+            )}
           </button>
         </form>
       </div>
